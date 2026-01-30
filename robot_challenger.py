@@ -24,28 +24,42 @@ class Robot_player(Robot):
         super().__init__(x_0, y_0, theta_0, name="Robot "+str(self.robot_id), team=self.team_name)
 
     def hateFriends(self,sBot, sTeam):
-        pass
+        front_right=0 if sTeam[sensor_front_right]!=self.team_name else sBot[sensor_front_right]*1.4
+        front_left=0 if sTeam[sensor_front_left]!=self.team_name else sBot[sensor_front_left]*-1.4
+        return sBot[sensor_front]*.5+0.1, front_right+front_left
 
     def hateWall(self, sWall):
         return sWall[sensor_front]*.5+0.1, sWall[sensor_front_right]*-1.4+sWall[sensor_front_left]*1.4+0.01
 
     def loveEnemyBot(self, sBot, sTeam):
-        return sBot[sensor_front]*.5+0.1, sBot[sensor_front_right]*1.4+sBot[sensor_front_left]*-1.4
+        front_right=0 if sTeam[sensor_front_right]==self.team_name else sBot[sensor_front_right]*1.4
+        front_left=0 if sTeam[sensor_front_left]==self.team_name else sBot[sensor_front_left]*-1.4
+        return sBot[sensor_front]*.5+0.1, front_right+front_left
+
+    def checkFriendOrFoe(self, sTeam):
+        sTeamFront=sTeam[sensor_front], sTeam[sensor_front_left], sTeam[sensor_front_right]
+        for t in sTeamFront:
+            if t not in ['n/a', self.team_name]:
+                return 1
+            if t==self.team_name:
+                return -1
+        return 0
 
     def sub(self, sensors, sensor_view=None, sensor_to_robot=None, sensor_to_wall=None, sensor_robot=None, sensor_team=None):
-        if false:
+        if self.checkFriendOrFoe(sensor_team)==1:
+            print('Foe !')
             translation, rotation = self.loveEnemyBot(sensor_to_robot, sensor_team)
-        elif false:
-            translation, rotation = self.loveEnemyBot(sensor_to_robot, sensor_team)
+        elif self.checkFriendOrFoe(sensor_team)==-1:
+            print('Friend...')
+            translation, rotation = self.hateFriends(sensor_to_robot, sensor_team)
         else:
             translation, rotation = self.hateWall(sensor_to_wall)
         return translation, rotation
 
-    def stay(self, sensors, sensor_view=None, sensor_robot=None, sensor_team=None):
+    def stay(self, sensors, sensor_view=None, sensor_to_robot=None, sensor_to_wall=None, sensor_robot=None, sensor_team=None):
         return 0,0
 
     def step(self, sensors, sensor_view=None, sensor_robot=None, sensor_team=None):
-
         behaviours = [self.sub, self.stay, self.stay, self.stay]
 
         sensor_to_wall = []
@@ -61,7 +75,7 @@ class Robot_player(Robot):
                 sensor_to_wall.append(1.0)
                 sensor_to_robot.append(1.0)
         
-        translation, rotation = behaviours[self.id](sensors, sensor_view, sensor_to_robot, sensor_to_wall, sensor_robot, sensor_team)
+        translation, rotation = behaviours[self.id-1](sensors, sensor_view, sensor_to_robot, sensor_to_wall, sensor_robot, sensor_team)
 
         return translation, rotation, False
 
