@@ -2,7 +2,7 @@
 #
 # Binome:
 #  Prénom Nom No_étudiant/e : Jules Rousseaux 21210789
-#  Prénom Nom No_étudiant/e : _________
+#  Prénom Nom No_étudiant/e : Haroun Zerdoumi 21212992
 #
 # check robot.py for sensor naming convention
 # all sensor and motor value are normalized (from 0.0 to 1.0 for sensors, -1.0 to +1.0 for motors)
@@ -26,7 +26,7 @@ class Robot_player(Robot):
     def hateFriends(self,sBot, sTeam):
         front_right=0 if sTeam[sensor_front_right]!=self.team_name else sBot[sensor_front_right]*1.4
         front_left=0 if sTeam[sensor_front_left]!=self.team_name else sBot[sensor_front_left]*-1.4
-        return sBot[sensor_front]*.5+0.1, front_right+front_left
+        return sBot[sensor_front]*-.5-0.1, front_right+front_left
 
     def hateWall(self, sWall):
         return sWall[sensor_front]*.5+0.1, sWall[sensor_front_right]*-1.4+sWall[sensor_front_left]*1.4+0.01
@@ -44,13 +44,15 @@ class Robot_player(Robot):
             if t==self.team_name:
                 return -1
         return 0
+    
+    def hateWall2(self, sensors, sensor_view=None, sensor_to_robot=None, sensor_to_wall=None, sensor_robot=None, sensor_team=None):
+        sWall = sensor_to_wall
+        return sWall[sensor_front]*.5+0.1, sWall[sensor_front_right]*-1.4+sWall[sensor_front_left]*1.4+(random.random()-0.5)
 
     def sub(self, sensors, sensor_view=None, sensor_to_robot=None, sensor_to_wall=None, sensor_robot=None, sensor_team=None):
         if self.checkFriendOrFoe(sensor_team)==1:
-            print('Foe !')
             translation, rotation = self.loveEnemyBot(sensor_to_robot, sensor_team)
         elif self.checkFriendOrFoe(sensor_team)==-1:
-            print('Friend...')
             translation, rotation = self.hateFriends(sensor_to_robot, sensor_team)
         else:
             translation, rotation = self.hateWall(sensor_to_wall)
@@ -60,7 +62,7 @@ class Robot_player(Robot):
         return 0,0
 
     def step(self, sensors, sensor_view=None, sensor_robot=None, sensor_team=None):
-        behaviours = [self.sub, self.stay, self.stay, self.stay]
+        behaviours = [self.sub, self.hateWall2, self.hateWall2, self.stay]
 
         sensor_to_wall = []
         sensor_to_robot = []
