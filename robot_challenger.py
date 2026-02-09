@@ -17,9 +17,11 @@ class Robot_player(Robot):
     robot_id = -1             # ne pas modifier. Permet de connaitre le numéro de votre robot.
     memory = 0                # vous n'avez le droit qu'a une case mémoire qui doit être obligatoirement un entier
 
-    def __init__(self, x_0, y_0, theta_0, name="n/a", team="n/a"):
+    def __init__(self, x_0, y_0, theta_0, name="n/a", team="n/a", b=None):
         global nb_robots
+        self.bMethods = [self.hateWall, self.loveEnemyBot, self.hateWall2, self.sub]
         self.robot_id = nb_robots
+        self.b = b
         nb_robots+=1
         super().__init__(x_0, y_0, theta_0, name="Robot "+str(self.robot_id), team=self.team_name)
 
@@ -77,7 +79,10 @@ class Robot_player(Robot):
                 sensor_to_wall.append(1.0)
                 sensor_to_robot.append(1.0)
         
-        translation, rotation = behaviours[self.id-1](sensors, sensor_view, sensor_to_robot, sensor_to_wall, sensor_robot, sensor_team)
+        if b==None:
+            translation, rotation = behaviours[self.id-1 % 4](sensors, sensor_view, sensor_to_robot, sensor_to_wall, sensor_robot, sensor_team)
+        else:
+            translation, rotation = self.bMethods[int(self.b)](sensors, sensor_view, sensor_to_robot, sensor_to_wall, sensor_robot, sensor_team)
 
         return translation, rotation, False
 
