@@ -12,11 +12,13 @@ class Robot_player(Robot):
 
     def __init__(self, x_0, y_0, theta_0, param_trans, param_rot, name="n/a", team="n/a"):
         global nb_robots
+        if team != "n/a":
+            self.team_name = team
         self.robot_id = nb_robots
-        self.tabTrans = param_trans
-        self.tabRot = param_rot
+        self.param_trans = param_trans
+        self.param_rot = param_rot
         nb_robots+=1
-        super().__init__(x_0, y_0, theta_0, name=name, team=team)
+        super().__init__(x_0, y_0, theta_0, name="Robot "+str(self.robot_id), team=self.team_name)
 
     def step(self, sensors, sensor_view=None, sensor_robot=None, sensor_team=None):
         sensor_to_wall = []
@@ -32,8 +34,8 @@ class Robot_player(Robot):
                 sensor_to_wall.append(1.0)
                 sensor_to_robot.append(1.0)
         
-        translation = self.tabTrans[0]
-        rotation = self.tabRot[0]
+        translation = self.param_trans[0]
+        rotation = self.param_rot[0]
 
         for i in range(len(sensor_to_robot)):
             translation += sensor_to_wall[i]*self.param_trans[i+1]

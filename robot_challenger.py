@@ -13,13 +13,15 @@ nb_robots = 0
 
 class Robot_player(Robot):
 
-    team_name = "The Otter Team"  # vous pouvez modifier le nom de votre équipe
+    team_name = "A"  # vous pouvez modifier le nom de votre équipe
     robot_id = -1             # ne pas modifier. Permet de connaitre le numéro de votre robot.
     memory = 0                # vous n'avez le droit qu'a une case mémoire qui doit être obligatoirement un entier
 
     def __init__(self, x_0, y_0, theta_0, name="n/a", team="n/a", b=None):
         global nb_robots
-        self.bMethods = [self.hateWall, self.loveEnemyBot, self.hateWall2, self.sub]
+        if team != "n/a":
+            self.team_name = team
+        self.bMethods = [self.hateWallTraining, self.loveEnemyBotTraining, self.hateWall2, self.sub]
         self.robot_id = nb_robots
         self.b = b
         nb_robots+=1
@@ -79,10 +81,23 @@ class Robot_player(Robot):
                 sensor_to_wall.append(1.0)
                 sensor_to_robot.append(1.0)
         
-        if b==None:
+        if self.b==None:
             translation, rotation = behaviours[self.id-1 % 4](sensors, sensor_view, sensor_to_robot, sensor_to_wall, sensor_robot, sensor_team)
         else:
             translation, rotation = self.bMethods[int(self.b)](sensors, sensor_view, sensor_to_robot, sensor_to_wall, sensor_robot, sensor_team)
 
         return translation, rotation, False
+    
+    # The Following Behaviours were added as part of the genetic algorithm's training to increase diversity and can be deleted without worry once the training is complete
+
+    def hateWallTraining(self, sensors, sensor_view=None, sensor_to_robot=None, sensor_to_wall=None, sensor_robot=None, sensor_team=None):
+        sWall = sensor_to_wall
+        return sWall[sensor_front]*.5+0.1, sWall[sensor_front_right]*-1.4+sWall[sensor_front_left]*1.4+0.01
+
+    def loveEnemyBotTraining(self, sensors, sensor_view=None, sensor_to_robot=None, sensor_to_wall=None, sensor_robot=None, sensor_team=None):
+        sTeam = sensor_team
+        sBot = sensor_to_robot
+        front_right=0 if sTeam[sensor_front_right]==self.team_name else sBot[sensor_front_right]*1.4
+        front_left=0 if sTeam[sensor_front_left]==self.team_name else sBot[sensor_front_left]*-1.4
+        return sBot[sensor_front]*.5+0.1, front_right+front_left
 

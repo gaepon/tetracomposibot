@@ -17,6 +17,10 @@ class Robot_player(Robot):
 
     def __init__(self, x_0, y_0, theta_0, name="n/a", team="n/a"):
         global nb_robots
+        #### Added to remove allow them to be on other teams during genetic training ####
+        if team != "n/a":
+            self.team_name = team
+        #### End of the added code ####
         self.robot_id = nb_robots
         nb_robots+=1
         super().__init__(x_0, y_0, theta_0, name="Robot "+str(self.robot_id), team=self.team_name)

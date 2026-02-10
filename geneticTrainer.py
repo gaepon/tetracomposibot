@@ -1,8 +1,9 @@
 import subprocess as sp
+import os
 import random
 
 def createConfig(TheChosenOnes, arena):
-    with open("config_training.py") as f:
+    with open("config_training.py", "w+") as f:
         f.write(f"""# Configuration file.
 
 import arenas
@@ -58,14 +59,19 @@ def getTeam(n, team):
         if r == "champion":
             res.append(f"""robot_champion.Robot_player(x_init_pos[{teamParam[0]}], arena_size//2-16+{i}*8, {teamParam[1]}, name="", team="{teamParam[2]}")""")
         else:
-            res.append(f"""robot_challenger.Robot_player(x_init_pos[{teamParam[0]}], arena_size//2-16+{i}*8, {teamParam[1]}, name="", team="{teamParam[2]}, b="{r}")""")
+            res.append(f"""robot_challenger.Robot_player(x_init_pos[{teamParam[0]}], arena_size//2-16+{i}*8, {teamParam[1]}, name="", team="{teamParam[2]}", b="{r}")""")
     return res
 
 def runIte(config):
-    pproc = sp.Popen(["python3", "tetracomposibot.py", config], stdout=sp.PIPE)
+    processus = "python3"
+    if os.name == "nt":
+        processus = "./.venv/Scripts/python.exe"
+    proc = sp.Popen([processus, "tetracomposibot.py", config], stdout=sp.PIPE)
     result = proc.communicate()[0].decode()
+    return int(result.split("]")[0].split(' ')[-2]), int(result.split("]")[1].split(' ')[-2])
 
-    return result.split("]")[0].split(' ')[-2], result.split("]")[1].split(' ')[-2]
+def evolve(d):
+    pass
 
 def main():
     bestParamTrans = [0 for _ in range(17)]
@@ -75,18 +81,36 @@ def main():
     childToTest = [(bestParamTrans, bestParamRot)]
     res = {}
 
-    while gen<1000:
-        arenaOrder = [random.randint(0, 5) for _ in range(10)]
+    while gen<1:
+        arenaOrder = [random.randint(0, 4) for _ in range(10)]
         teamA = getTeam(3, "A")
         teamB = getTeam(4, "B")
 
         while childToTest!=[]:
             c = childToTest.pop()
+            teamA.append(f"""robot_genetic_training.Robot_player(x_init_pos[0], arena_size//2-16+3*8, orientation_champion, {c[0]}, {c[1]}, name="", team="A")""")
+            teamA.extend(teamB)
+            chosenOnes = "["+",".join(teamA)+"]"
+            matchRes = []
             for a in arenaOrder:
-                createConfig()
-        """robot_challenger.Robot_player(x_init_pos[0], arena_size//2-16+i*8, orientation_champion, name="", team="A")"""
-        """robot_champion.Robot_player(x_init_pos[1], arena_size//2-16+i*8, orientation_challenger, name="", team="B")"""
+                createConfig(chosenOnes, a)
+                m=runIte("config_training")
+                matchRes.append(m[0]-m[1])
+            score=sum(matchRes)/len(matchRes)
+
+            if len(res)<4:
+                res[score]=c
+            else:
+                minScore = min(list(res.keys()))
+                if score>minScore:
+                    res.pop(minScore)
+                    res[score]=c
+        
+        childToTest = evolve(res)
+
         gen+=1
 
+        print(res)
+    
 if __name__=="__main__":
     main()
