@@ -2,9 +2,10 @@ import subprocess as sp
 import os
 import random
 import copy
+import multiprocessing
 
-def createConfig(TheChosenOnes, arena):
-    with open("config_training.py", "w+") as f:
+def createConfig(TheChosenOnes, arena, file):
+    with open(file+".py", "w+") as f:
         f.write(f"""# Configuration file.
 
 #FILE AUTO-GENERATED DURING TRAINING BY geneticTrainer.py
@@ -65,13 +66,13 @@ def getTeam(n, team):
             res.append(f"""robot_challenger.Robot_player(x_init_pos[{teamParam[0]}], arena_size//2-16+{i}*8, {teamParam[1]}, name="", team="{teamParam[2]}", b="{r}")""")
     return res
 
-def runIte(config):
+def runIte(config, procnum, returnDict):
     processus = "python3"
     if os.name == "nt":
         processus = "./.venv/Scripts/python.exe"
     proc = sp.Popen([processus, "tetracomposibot.py", config], stdout=sp.PIPE)
     result = proc.communicate()[0].decode()
-    return int(result.split("]")[0].split(' ')[-2]), int(result.split("]")[1].split(' ')[-2])
+    returnDict[procnum] = int(result.split("]")[0].split(' ')[-2]) - int(result.split("]")[1].split(' ')[-2])
 
 def mutate(genome:list[float], chance:float):
     for i in range(len(genome)):
@@ -126,6 +127,10 @@ def evolve(parents:dict):
 
     return children
 
+def run(TheChosenOnes, arena, config, procnum, returnDict):
+    file = config+f"_{procnum}"
+    createConfig(TheChosenOnes, arena, file)
+    runIte(file, procnum, returnDict)
 
 def main():
     bestParamTrans = [0 for _ in range(17)]
@@ -135,8 +140,12 @@ def main():
     childToTest = [(bestParamTrans, bestParamRot)]
     res = {}
     bestEver = None
+    bestGen = 0
 
-    while gen<10:
+    manager = multiprocessing.Manager()
+    returnDict = manager.dict()
+
+    while gen<500:
         if gen%5==0:
             print("Génération", gen, "en cours d'entrainement")
         arenaOrder = [random.randint(0, 4) for _ in range(6)]
@@ -150,12 +159,19 @@ def main():
             robots.append(f"""robot_genetic_training.Robot_player(x_init_pos[0], arena_size//2-16+3*8, orientation_champion, {c[0]}, {c[1]}, name="", team="A")""")
             robots.extend(teamB)
             chosenOnes = "["+",".join(robots)+"]"
-            matchRes = []
-            for a in arenaOrder:
-                createConfig(chosenOnes, a)
-                m=runIte("config_training")
-                matchRes.append(m[0]-m[1])
-            score=sum(matchRes)/len(matchRes)
+            jobs = []
+
+
+            for i in range(len(arenaOrder)):
+                a = arenaOrder[i]
+                p=multiprocessing.Process(target=run, args=(chosenOnes, a, "config_training", i, returnDict))
+                jobs.append(p)
+                p.start()
+            
+            for proc in jobs:
+                proc.join()
+
+            score=sum(returnDict.values())/len(returnDict.values())
 
             if len(res)<4:
                 res[score]=c
@@ -167,15 +183,17 @@ def main():
             
             if bestEver is None:
                 bestEver=(score, c)
+                bestGen=gen
             elif bestEver[0]<score:
                 bestEver=(score, c)
+                bestGen=gen
         
         childToTest = evolve(res)
 
         gen+=1
 
     print(res)
-    print(f"Best Ever Performing Little Fella : {bestEver[1]} with a score of {bestEver[0]}")
+    print(f"Best Ever Performing Little Fella : {bestEver[1]} with a score of {bestEver[0]} from generation {bestGen}")
     
 if __name__=="__main__":
     main()

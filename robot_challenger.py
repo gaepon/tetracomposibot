@@ -65,8 +65,25 @@ class Robot_player(Robot):
     def stay(self, sensors, sensor_view=None, sensor_to_robot=None, sensor_to_wall=None, sensor_robot=None, sensor_team=None):
         return 0,0
 
+    def genetic(self, sensors, sensor_view=None, sensor_to_robot=None, sensor_to_wall=None, sensor_robot=None, sensor_team=None):
+        param_trans = [-0.09256229479953881, 0.42169396200312703, 0, 0, 0.4983698256727156, 0, 0, 0, 0.6729102552677033, -0.591974439126, 0, 0, 0, 0, 0.7845287876973694, 0, 0]
+        param_rot = [0.39183962984858933, 0.565075594249391, 0, 0, -0.7697873666522566, -0.11788083818219364, 0.13142583202983094, 0, 0, 0, 0, 0, 0, 0, 0, -0.999308949278894, 0]
+
+        translation = param_trans[0]
+        rotation = param_rot[0]
+
+        for i in range(len(sensor_to_robot)):
+            translation += sensor_to_wall[i]*param_trans[i+1]
+            rotation += sensor_to_wall[i]*param_rot[i+1]
+        for i in range(len(sensor_to_robot)):
+            translation += sensor_to_robot[i]*param_trans[i+len(sensor_to_wall)+1]
+            rotation += sensor_to_robot[i]*param_rot[i+len(sensor_to_wall)+1]
+        
+        return translation, rotation
+
+
     def step(self, sensors, sensor_view=None, sensor_robot=None, sensor_team=None):
-        behaviours = [self.sub, self.hateWall2, self.hateWall2, self.stay]
+        behaviours = [self.sub, self.hateWall2, self.hateWall2, self.genetic]
 
         sensor_to_wall = []
         sensor_to_robot = []
