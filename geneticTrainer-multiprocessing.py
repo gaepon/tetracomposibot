@@ -24,7 +24,7 @@ max_iterations = 2001 #401*500
 display_welcome_message = False
 verbose_minimal_progress = False # display iterations
 display_robot_stats = False
-display_team_stats = False
+display_team_stats = True
 display_tournament_results = True
 display_time_stats = False
 
@@ -56,7 +56,7 @@ def getTeam(n, team):
         teamParam = [0, "orientation_champion", "A"]
     else:
         teamParam = [1, "orientation_challenger", "B"]
-    behaviours = ["champion", "0", "1", "2", "3"]
+    behaviours = ["champion", "0", "1", "2", "3", "4"]
     res = []
     for i in range(n):
         r=random.choice(behaviours)
@@ -145,7 +145,7 @@ def main():
     manager = multiprocessing.Manager()
     returnDict = manager.dict()
 
-    while gen<500:
+    while gen<250:
         if gen%5==0:
             print("Génération", gen, "en cours d'entrainement")
         arenaOrder = [random.randint(0, 4) for _ in range(6)]

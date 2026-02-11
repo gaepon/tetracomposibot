@@ -4,8 +4,8 @@ import arenas
 
 # general -- first three parameters can be overwritten with command-line arguments (cf. "python tetracomposibot.py --help")
 
-display_mode = 0
-arena = 4
+display_mode = 2
+arena = 1
 position = False 
 max_iterations = 2001 #401*500
 
@@ -14,7 +14,7 @@ max_iterations = 2001 #401*500
 display_welcome_message = False
 verbose_minimal_progress = False # display iterations
 display_robot_stats = False
-display_team_stats = False
+display_team_stats = True
 display_tournament_results = True
 display_time_stats = False
 
@@ -38,7 +38,7 @@ def initialize_robots(arena_size=-1, particle_box=-1): # particle_box: size of t
         orientation_challenger = 0
     robots = []
     for i in range(4):
-        robots.append(robot_challenger.Robot_player(x_init_pos[0], arena_size//2-16+i*8, orientation_champion, name="", team="A"))
+        robots.append(robot_challenger.Robot_player(x_init_pos[0], arena_size//2-16+i*8, orientation_champion, name="", team="The Otter Team"))
     for i in range(4):
-        robots.append(robot_champion.Robot_player(x_init_pos[1], arena_size//2-16+i*8, orientation_challenger, name="", team="B"))
+        robots.append(robot_champion.Robot_player(x_init_pos[1], arena_size//2-16+i*8, orientation_challenger, name="", team="Professor X"))
     return robots
