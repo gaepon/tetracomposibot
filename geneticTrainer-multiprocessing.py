@@ -3,8 +3,24 @@ import os
 import random
 import copy
 import multiprocessing
+from multiprocessing.managers import DictProxy
 
-def createConfig(TheChosenOnes, arena, file):
+##################################################################
+## The Following Script Is There To Train The Genetic Algorirhm ##
+##################################################################
+
+
+def createConfig(TheChosenOnes:list, arena:int, file:str)->None:
+    """
+    Creates a config file that can be used by tetracomposibot.py
+    
+    :param TheChosenOnes: Robots used in the config
+    :type TheChosenOnes: list
+    :param arena: Arena to use in the config
+    :type arena: int
+    :param file: Filename for the created config
+    :type file: str
+    """
     with open(file+".py", "w+") as f:
         f.write(f"""# Configuration file.
 
@@ -51,12 +67,25 @@ def initialize_robots(arena_size=-1, particle_box=-1): # particle_box: size of t
     return robots
 """)
 
-def getTeam(n, team):
+def getTeam(n:int, team:str)->list[str]:
+    """
+    Generates a team of n robots with random behaviours
+    
+    :param n: The number of robots to create
+    :type n: int
+    :param team: The team to which the robots will be affected
+    :type team: str
+    :return: A list containing preconfigured and positioned robots
+    :rtype: list[str]
+    """
+
     if team=="A":
         teamParam = [0, "orientation_champion", "A"]
     else:
         teamParam = [1, "orientation_challenger", "B"]
+
     behaviours = ["champion", "0", "1", "2", "3", "4"]
+
     res = []
     for i in range(n):
         r=random.choice(behaviours)
@@ -66,19 +95,48 @@ def getTeam(n, team):
             res.append(f"""robot_challenger.Robot_player(x_init_pos[{teamParam[0]}], arena_size//2-16+{i}*8, {teamParam[1]}, name="", team="{teamParam[2]}", b="{r}")""")
     return res
 
-def runIte(config, procnum, returnDict):
+def runIte(config:str, procnum:int, returnDict:DictProxy)->None:
+    """
+    Runs a paintwars match with tetracomposibot
+    
+    :param config: The config file to use
+    :type config: str
+    :param procnum: The processus number
+    :type procnum: int
+    :param returnDict: A synced dictionary containing the paintwar's results
+    :type returnDict: DictProxy
+    """
     processus = "python3"
+
+    #Windows being windows...
     if os.name == "nt":
         processus = "./.venv/Scripts/python.exe"
+
     proc = sp.Popen([processus, "tetracomposibot.py", config], stdout=sp.PIPE)
+
+    #Get tetracomposibot's prints
     result = proc.communicate()[0].decode().split('\n')
+
     returnDict[procnum] = (int(result[-2].split("]")[0].split(' ')[-2]) - int(result[-2].split("]")[1].split(' ')[-2]), int(result[3].split()[-2]))
 
-def mutate(genome:list[float], chance:float, sigma:float):
+def mutate(genome:list[float], chance:float, sigma:float)->list[float]:
+    """
+    Docstring for mutate
+    
+    :param genome: Description
+    :type genome: list[float]
+    :param chance: Description
+    :type chance: float
+    :param sigma: Description
+    :type sigma: float
+    :return: Description
+    :rtype: list[float]
+    """
+
     for i in range(len(genome)):
         random.normalvariate
         if random.random()>=chance:
-            genome[i]=random.normalvariate(0, sigma)
+            genome[i]+=random.normalvariate(0, sigma)
             if random.random()<=0.05: #Catastrophic reroll
                 genome[i]=random.uniform(-1, 1)
     return genome
