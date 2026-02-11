@@ -139,7 +139,7 @@ def main():
     while gen<10:
         if gen%5==0:
             print("Génération", gen, "en cours d'entrainement")
-        arenaOrder = [random.randint(0, 4) for _ in range(6)]
+        arenaOrder = [random.choice([0, 1, 2, 2, 3, 3, 4, 4, 4, 4]) for _ in range(6)]
         teamA = getTeam(3, "A")
         teamB = getTeam(4, "B")
 
