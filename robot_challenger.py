@@ -62,8 +62,124 @@ class Robot_player(Robot):
             translation, rotation = self.hateWall(sensor_to_wall)
         return translation, rotation
 
-    def stay(self, sensors, sensor_view=None, sensor_to_robot=None, sensor_to_wall=None, sensor_robot=None, sensor_team=None):
-        return 0,0
+    def comportement_zigzag(self, sensors, sensor_view=None,
+                      sensor_to_robot=None, sensor_to_wall=None,
+                      sensor_robot=None, sensor_team=None):
+        """
+        Comportement zigzag :
+        - Avance tout droit.
+        - Si mur DEVANT: print("mur"), puis exécute un cycle :
+            (tour -> avance N -> tour) dans un sens donné.
+        - Après un cycle complet, le prochain cycle se fera dans l'autre sens
+        (gauche puis droite puis gauche...).
+        - Pendant l'avance (state 2), si mur DEVANT: print("mur") et on relance
+        immédiatement un nouveau cycle (dans le sens actuel).
+
+        Concrétement le robot fait des zig-zag vers le haut (de notre point de vue),
+        quand il rencontre le mur du haut, il fait des zig-zag vers la droite, etc...
+
+        Attention : nous vous conseillons de lire comment nous nous sommes servis de 
+        la mémoire plus loin dans les commentaires.
+        """
+
+        V_FWD = 1.0         #vitesse vers l'avant
+        W = 1.0             # vitesse angulaire 
+        EPS = 0.12          # seuil collision/proximité (trouvé à 0.1111...)
+        N = 4               # steps d'avance dans le cycle (trouvé à 4)
+        K_TURN = 9          # steps de rotation (trouvé à 9)
+
+        """Problème avec la mémoire : nous avons trois éléments à retenir (direction, état, step)
+        Or nous n'avons qu'un seul bloc mémoire entier (qui n'a pas de limite de taille cependant)
+
+        Nous nous sommes donc inspiré de la lecture mémoire vu dans l'UE d'architecture des ordinateurs :
+        memory = dir * 100000 + state * 1000 + counter
+
+        dir * 100000 met dir dans les centaines de milliers (le “bloc lourd”, ce ne sont pas des bits comme
+        en architecture mais la logique en la même en base 10)
+        state * 1000 met state dans les milliers
+        counter occupe les unités (0 à 999)
+
+        Par exemple dir = 1, state = 2, counter = 17
+        memory = 1*100000 + 2*1000 + 17 = 102017
+        Ça veut dire : “droite, état 2, il reste 17 pas”. On peut facilement le retrouver à partir de la
+        valeur de memory
+
+        dir: 0=gauche, 1=droite
+        state: 0=avance libre, 1=tour1, 2=avance N, 3=tour2
+        counter: steps restants
+        """
+
+        if not hasattr(self, "memory"):         #cas initiale
+            self.memory = 0                     # dir=0, state=0, counter=0
+
+        dir = self.memory // 100000            #On retrouve la direction
+        rest = self.memory % 100000             
+        state = rest // 1000                    #On retrouve l'état
+        counter = rest % 1000                   #On retrouve le compteur de pas restant
+
+        # sécurité
+        if sensor_view is None:
+            return V_FWD, 0.0
+
+        #Fonction pour détecter le mur    
+        def mur_devant():                       
+            return (sensor_view[sensor_front] == 1) and (sensors[sensor_front] <= EPS)
+
+        #Fonction pour calculer la mémoire
+        def set_mem(new_dir, new_state, new_counter):   
+            self.memory = new_dir * 100000 + new_state * 1000 + new_counter
+
+        #Fonction de choix de la rotation
+        def rot_cmd():
+            # gauche: +W ; droite: -W
+            return (W if dir == 0 else -W)
+
+        # --------- STATE 0 : AVANCE LIBRE ----------
+        if state == 0:
+            if mur_devant():                #On passe au state suivant que s'il rencontre un mur
+                #print("mur")
+                set_mem(dir, 1, K_TURN)
+                return 0.0, rot_cmd()       #Auquel cas il tourne    
+            return V_FWD, 0.0               #Sinon il avance
+
+        # --------- STATE 1 : TOUR 1 ----------
+        if state == 1:
+            if counter > 1:                 #On détermine où il en est dans la rotation grâce au compteur de pas
+                set_mem(dir, 1, counter - 1)
+                return 0.0, rot_cmd()       #Si ce n'est pas suffisant on continue à tourner
+            else:
+                set_mem(dir, 2, N)          #Passe à l'avance N
+                return V_FWD, 0.0
+
+        # --------- STATE 2 : AVANCE N ----------
+        if state == 2:
+            if mur_devant():                #S'il atteint un bord
+                print("mur")
+                set_mem(dir, 1, K_TURN)     #On change de zig-zag
+                return 0.0, rot_cmd()
+
+            if counter > 1:                 #On avance de façon fixe cette fois
+                set_mem(dir, 2, counter - 1)
+                return V_FWD, 0.0           
+            else:
+                set_mem(dir, 3, K_TURN)     # tour2
+                return 0.0, rot_cmd()
+
+        # --------- STATE 3 : TOUR 2 ----------
+        if state == 3:
+            if counter > 1:                 #Même schéma qu'au tour 1
+                set_mem(dir, 3, counter - 1)
+                return 0.0, rot_cmd()
+            else:
+                # fin du cycle: on repasse en avance libre
+                # et on inverse le sens pour le prochain mur (gauche <-> droite)
+                new_dir = 1 - dir
+                set_mem(new_dir, 0, 0)
+                return V_FWD, 0.0
+
+        #sécurité
+        #set_mem(dir, 0, 0)
+        #return V_FWD, 0.0
 
     def genetic(self, sensors, sensor_view=None, sensor_to_robot=None, sensor_to_wall=None, sensor_robot=None, sensor_team=None):
         #param_trans = [0.3990626228373406, 0.130909966267728, 0.3973892760930806, 0.5195417448674287, -0.998824923203858, 0.5615106705907513, 0.29709583175249654, -0.15436122863294877, -0.8468911421793281, -0.7807404888752585, 0.3796389006756662, -0.027098545325070944, 0.12016350586850466, -0.47293278817578166, -0.6128695349817537, -0.7281828903595962, 0.7975742276444755]
@@ -85,7 +201,7 @@ class Robot_player(Robot):
 
 
     def step(self, sensors, sensor_view=None, sensor_robot=None, sensor_team=None):
-        behaviours = [self.sub, self.hateWall2, self.hateWall2, self.genetic]
+        behaviours = [self.sub, self.hateWall2, self.comportement_zigzag, self.genetic]
 
         sensor_to_wall = []
         sensor_to_robot = []
