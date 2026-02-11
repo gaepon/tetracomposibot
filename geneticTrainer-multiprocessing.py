@@ -5,12 +5,12 @@ import copy
 import multiprocessing
 from multiprocessing.managers import DictProxy
 
-##################################################################
-## The Following Script Is There To Train The Genetic Algorirhm ##
-##################################################################
+###################################################################
+## The Following Script Is There To Train The Genetic Algorirthm ##
+###################################################################
 
 
-def createConfig(TheChosenOnes:list, arena:int, file:str)->None:
+def createConfig(TheChosenOnes:list[str], arena:int, file:str)->None:
     """
     Creates a config file that can be used by tetracomposibot.py
     
@@ -121,15 +121,15 @@ def runIte(config:str, procnum:int, returnDict:DictProxy)->None:
 
 def mutate(genome:list[float], chance:float, sigma:float)->list[float]:
     """
-    Docstring for mutate
+    Mutates the genome passed in parameter. Small chance for a gene to be completely rerolled
     
-    :param genome: Description
+    :param genome: The genome to mutate
     :type genome: list[float]
-    :param chance: Description
+    :param chance: The chance for each gene to mutate. A 5% chance should be written as 0.95
     :type chance: float
-    :param sigma: Description
+    :param sigma: sigma for normalvariate
     :type sigma: float
-    :return: Description
+    :return: The mutated genome
     :rtype: list[float]
     """
 
@@ -141,7 +141,15 @@ def mutate(genome:list[float], chance:float, sigma:float)->list[float]:
                 genome[i]=random.uniform(-1, 1)
     return genome
 
-def evolve(parents:dict):
+def evolve(parents:dict)->list[tuple]:
+    """
+    Creates mutated children from the provided parents
+    
+    :param parents: Dictionary of the parents to use
+    :type parents: dict
+    :return: A list of (param_trans, param_rot) tuples representing the children's parameters
+    :rtype: list[tuple]
+    """
     children = []
 
     if len(parents)>1:
@@ -169,6 +177,7 @@ def evolve(parents:dict):
             lCrossParent = [p1, p2]
             k=0
 
+            #Two points (or more) crossovers
             for i in range(len(p1[0])):
                 if random.random()>0.98:
                     k+=1
@@ -180,6 +189,7 @@ def evolve(parents:dict):
             
             children.append((copy.copy(tr), copy.copy(ro)))
     else:
+        #Only one parent
         for i in range(5):
             p = copy.deepcopy(parents)
             k = list(p.keys())[0]
@@ -188,12 +198,30 @@ def evolve(parents:dict):
 
     return children
 
-def run(TheChosenOnes, arena, config, procnum, returnDict):
+def run(TheChosenOnes:list[str], arena:int, config:str, procnum:int, returnDict:DictProxy)->None:
+    """
+    A function ran by new processes
+    
+    :param TheChosenOnes: Robots used in the config
+    :type TheChosenOnes: list[str]
+    :param arena: Arena to use in the config
+    :type arena: int
+    :param config: The config file to use
+    :type config: str
+    :param procnum: The processus number
+    :type procnum: int
+    :param returnDict: A synced dictionary containing the paintwar's results
+    :type returnDict: DictProxy
+    """
     file = config+f"_{procnum}"
     createConfig(TheChosenOnes, arena, file)
     runIte(file, procnum, returnDict)
 
-def main():
+def main()->None:
+    """
+    It's... It's main\n
+    As in the main function of this script
+    """
     bestParamTrans = [0 for _ in range(17)]
     bestParamRot = [0 for _ in range(17)]
     gen=0
@@ -207,12 +235,16 @@ def main():
     returnDict = manager.dict()
 
     while gen<250:
+        #The training takes a long time, the prints are needed to know that it's still running
         if gen%5==0:
             print("Génération", gen, "en cours d'entrainement")
+        #Selecting the arenas
         arenaOrder = [random.randint(0, 4) for _ in range(6)]
+        #Creating the teams
         teamA = getTeam(3, "A")
         teamB = getTeam(4, "B")
 
+        #Testing all the children
         while childToTest!=[]:
             robots=[]
             c = childToTest.pop()
@@ -222,7 +254,7 @@ def main():
             chosenOnes = "["+",".join(robots)+"]"
             jobs = []
 
-
+            #New processes to reduce the time taken
             for i in range(len(arenaOrder)):
                 a = arenaOrder[i]
                 p=multiprocessing.Process(target=run, args=(chosenOnes, a, "config_training", i, returnDict))
@@ -232,6 +264,7 @@ def main():
             for proc in jobs:
                 proc.join()
 
+            #Getting the child's score
             su=0
             score=0
             for _, v in returnDict.items():
@@ -239,6 +272,7 @@ def main():
                 su+=v[1]
             score=score/len(returnDict.keys())+su/len(returnDict.keys())
 
+            #Updating the current bests and the best ever
             if len(res)<4:
                 res[score]=c
             else:
