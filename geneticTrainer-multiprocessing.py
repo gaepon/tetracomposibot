@@ -71,8 +71,8 @@ def runIte(config, procnum, returnDict):
     if os.name == "nt":
         processus = "./.venv/Scripts/python.exe"
     proc = sp.Popen([processus, "tetracomposibot.py", config], stdout=sp.PIPE)
-    result = proc.communicate()[0].decode().split('\r')
-    returnDict[procnum] = (int(result[-3].split("]")[0].split(' ')[-2]) - int(result[-2].split("]")[1].split(' ')[-2]), int(result[3].split()[-2]))
+    result = proc.communicate()[0].decode().split('\n')
+    returnDict[procnum] = (int(result[-2].split("]")[0].split(' ')[-2]) - int(result[-2].split("]")[1].split(' ')[-2]), int(result[3].split()[-2]))
 
 def mutate(genome:list[float], chance:float, sigma:float):
     for i in range(len(genome)):
@@ -148,7 +148,7 @@ def main():
     manager = multiprocessing.Manager()
     returnDict = manager.dict()
 
-    while gen<2:
+    while gen<250:
         if gen%5==0:
             print("Génération", gen, "en cours d'entrainement")
         arenaOrder = [random.randint(0, 4) for _ in range(6)]
