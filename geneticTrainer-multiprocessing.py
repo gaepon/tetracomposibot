@@ -78,7 +78,7 @@ def mutate(genome:list[float], chance:float, sigma:float):
     for i in range(len(genome)):
         random.normalvariate
         if random.random()>=chance:
-            genome[i]=random.normalvariate(0, sigma)
+            genome[i]+=random.normalvariate(0, sigma)
             if random.random()<=0.05: #Catastrophic reroll
                 genome[i]=random.uniform(-1, 1)
     return genome
