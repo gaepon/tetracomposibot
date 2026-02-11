@@ -23,7 +23,7 @@ max_iterations = 2001 #401*500
 display_welcome_message = False
 verbose_minimal_progress = False # display iterations
 display_robot_stats = False
-display_team_stats = False
+display_team_stats = True
 display_tournament_results = True
 display_time_stats = False
 
@@ -71,12 +71,21 @@ def runIte(config):
         processus = "./.venv/Scripts/python.exe"
     proc = sp.Popen([processus, "tetracomposibot.py", config], stdout=sp.PIPE)
     result = proc.communicate()[0].decode()
-    return int(result.split("]")[0].split(' ')[-2]), int(result.split("]")[1].split(' ')[-2])
+    print(result)
+    r=result.split('\r')
+    print(r)
+    print(r[3].split()[-2])
+    print(r[-3].split("]")[0].split(' ')[-2])
+    print(r[-2].split("]")[1].split(' ')[-2])
+    return int(r[-3].split("]")[0].split(' ')[-2]), int(r[-2].split("]")[1].split(' ')[-2]), int(r[3].split()[-2])
 
-def mutate(genome:list[float], chance:float):
+def mutate(genome:list[float], chance:float, sigma:float):
     for i in range(len(genome)):
+        random.normalvariate
         if random.random()>=chance:
-            genome[i]=random.uniform(-1, 1)
+            genome[i]=random.normalvariate(0, sigma)
+            if random.random()<=0.05: #Catastrophic reroll
+                genome[i]=random.uniform(-1, 1)
     return genome
 
 def evolve(parents:dict):
@@ -86,8 +95,8 @@ def evolve(parents:dict):
         # 2 mutation behaviours, one to fine-tune, the other to get out of niches
         for k in parents.keys():
             p = copy.deepcopy(parents)
-            children.append((mutate(p[k][0], 0.91), mutate(p[k][1], 0.91)))
-            children.append((mutate(p[k][0], 0.75), mutate(p[k][1], 0.75)))
+            children.append((mutate(p[k][0], 0.91, 0.09), mutate(p[k][1], 0.91, 0.09)))
+            children.append((mutate(p[k][0], 0.75, 0.4), mutate(p[k][1], 0.75, 0.4)))
         
         #Setting up crossovers !
 
@@ -121,8 +130,8 @@ def evolve(parents:dict):
         for i in range(5):
             p = copy.deepcopy(parents)
             k = list(p.keys())[0]
-            children.append((mutate(p[k][0], 0.91), mutate(p[k][1], 0.91)))
-            children.append((mutate(p[k][0], 0.75), mutate(p[k][1], 0.75)))
+            children.append((mutate(p[k][0], 0.91, 0.09), mutate(p[k][1], 0.91, 0.09)))
+            children.append((mutate(p[k][0], 0.75, 0.4), mutate(p[k][1], 0.75, 0.4)))
 
     return children
 
@@ -136,7 +145,7 @@ def main():
     res = {}
     bestEver = None
 
-    while gen<10:
+    while gen<1:
         if gen%5==0:
             print("Génération", gen, "en cours d'entrainement")
         arenaOrder = [random.choice([0, 1, 2, 2, 3, 3, 4, 4, 4, 4]) for _ in range(6)]
@@ -151,11 +160,13 @@ def main():
             robots.extend(teamB)
             chosenOnes = "["+",".join(robots)+"]"
             matchRes = []
+            s=0
             for a in arenaOrder:
                 createConfig(chosenOnes, a)
                 m=runIte("config_training")
+                s+=m[2]
                 matchRes.append(m[0]-m[1])
-            score=sum(matchRes)/len(matchRes)
+            score=sum(matchRes)/len(matchRes)+s/len(matchRes)
 
             if len(res)<4:
                 res[score]=c

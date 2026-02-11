@@ -14,7 +14,7 @@ max_iterations = 2001 #401*500
 display_welcome_message = False
 verbose_minimal_progress = False # display iterations
 display_robot_stats = False
-display_team_stats = True
+display_team_stats = False
 display_tournament_results = True
 display_time_stats = False
 
