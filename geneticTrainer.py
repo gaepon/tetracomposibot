@@ -1,9 +1,27 @@
+# Projet "robotique" IA&Jeux 2025
+#
+# Binome:
+#  Prénom Nom No_étudiant/e : Jules Rousseaux 21210789
+#  Prénom Nom No_étudiant/e : Haroun Zerdoumi 21212992
+
 import subprocess as sp
 import os
 import random
 import copy
 
-def createConfig(TheChosenOnes, arena):
+###################################################################
+## The Following Script Is There To Train The Genetic Algorirthm ##
+###################################################################
+
+def createConfig(TheChosenOnes:list[str], arena:int)->None:
+    """
+    Creates a config file that can be used by tetracomposibot.py
+    
+    :param TheChosenOnes: Robots used in the config
+    :type TheChosenOnes: list
+    :param arena: Arena to use in the config
+    :type arena: int
+    """
     with open("config_training.py", "w+") as f:
         f.write(f"""# Configuration file.
 
@@ -50,7 +68,17 @@ def initialize_robots(arena_size=-1, particle_box=-1): # particle_box: size of t
     return robots
 """)
 
-def getTeam(n, team):
+def getTeam(n:int, team:str)->list[str]:
+    """
+    Generates a team of n robots with random behaviours
+    
+    :param n: The number of robots to create
+    :type n: int
+    :param team: The team to which the robots will be affected
+    :type team: str
+    :return: A list containing preconfigured and positioned robots
+    :rtype: list[str]
+    """
     if team=="A":
         teamParam = [0, "orientation_champion", "A"]
     else:
@@ -65,30 +93,59 @@ def getTeam(n, team):
             res.append(f"""robot_challenger.Robot_player(x_init_pos[{teamParam[0]}], arena_size//2-16+{i}*8, {teamParam[1]}, name="", team="{teamParam[2]}", b="{r}")""")
     return res
 
-def runIte(config):
+def runIte(config:str)->tuple[int]:
+    """
+    Runs a paintwars match with tetracomposibot
+    
+    :param config: The config file to use
+    :type config: str
+    :return: The results obtained by the subprocess
+    :rtype: tuple[int]
+    """
     processus = "python3"
     if os.name == "nt":
         processus = "./.venv/Scripts/python.exe"
     proc = sp.Popen([processus, "tetracomposibot.py", config], stdout=sp.PIPE)
     result = proc.communicate()[0].decode()
-    print(result)
+    #print(result)
     r=result.split('\r')
-    print(r)
-    print(r[3].split()[-2])
-    print(r[-3].split("]")[0].split(' ')[-2])
-    print(r[-2].split("]")[1].split(' ')[-2])
-    return int(r[-3].split("]")[0].split(' ')[-2]), int(r[-2].split("]")[1].split(' ')[-2]), int(r[3].split()[-2])
+    #print(r)
+    #print(r[3].split()[-2])
+    #print(r[-3].split("]")[0].split(' ')[-2])
+    #print(r[-2].split("]")[1].split(' ')[-2])
+    return int(r[-2].split("]")[0].split(' ')[-2]), int(r[-2].split("]")[1].split(' ')[-2]), int(r[3].split()[-2])
 
-def mutate(genome:list[float], chance:float, sigma:float):
+def mutate(genome:list[float], chance:float, sigma:float)->list[float]:
+    """
+    Mutates the genome passed in parameter. Small chance for a gene to be completely rerolled
+    
+    :param genome: The genome to mutate
+    :type genome: list[float]
+    :param chance: The chance for each gene to mutate. A 5% chance should be written as 0.95
+    :type chance: float
+    :param sigma: sigma for normalvariate
+    :type sigma: float
+    :return: The mutated genome
+    :rtype: list[float]
+    """
+
     for i in range(len(genome)):
         random.normalvariate
         if random.random()>=chance:
-            genome[i]=random.normalvariate(0, sigma)
+            genome[i]+=random.normalvariate(0, sigma)
             if random.random()<=0.05: #Catastrophic reroll
                 genome[i]=random.uniform(-1, 1)
     return genome
 
-def evolve(parents:dict):
+def evolve(parents:dict)->list[tuple]:
+    """
+    Creates mutated children from the provided parents
+    
+    :param parents: Dictionary of the parents to use
+    :type parents: dict
+    :return: A list of (param_trans, param_rot) tuples representing the children's parameters
+    :rtype: list[tuple]
+    """
     children = []
 
     if len(parents)>1:
@@ -116,6 +173,7 @@ def evolve(parents:dict):
             lCrossParent = [p1, p2]
             k=0
 
+            #Two points (or more) crossovers
             for i in range(len(p1[0])):
                 if random.random()>0.98:
                     k+=1
@@ -127,6 +185,7 @@ def evolve(parents:dict):
             
             children.append((copy.copy(tr), copy.copy(ro)))
     else:
+        #Only one parent
         for i in range(5):
             p = copy.deepcopy(parents)
             k = list(p.keys())[0]
@@ -134,7 +193,6 @@ def evolve(parents:dict):
             children.append((mutate(p[k][0], 0.75, 0.4), mutate(p[k][1], 0.75, 0.4)))
 
     return children
-
 
 def main():
     bestParamTrans = [0 for _ in range(17)]
