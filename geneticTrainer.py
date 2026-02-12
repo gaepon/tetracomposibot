@@ -1,3 +1,9 @@
+# Projet "robotique" IA&Jeux 2025
+#
+# Binome:
+#  Prénom Nom No_étudiant/e : Jules Rousseaux 21210789
+#  Prénom Nom No_étudiant/e : Haroun Zerdoumi 21212992
+
 import subprocess as sp
 import os
 import random
